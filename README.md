@@ -1,3 +1,3 @@
-# Popular-Movies-1
+# Popular-Movies-2
 
-The movie database jey must be inserted as the first line of "key.txt" file at the root of the internal storage directory.
+The movie database key must be inserted as the first line of "key.txt" file at the root of the internal storage directory.
