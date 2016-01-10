@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Popular movies 1</string>
+
+    <string name="sort_by_rating">Sort by rating</string>
+    <string name="sort_by_pop">Sort by popularity</string>
+    <string name="release_date">Release date</string>
+    <string name="vote_average">Vote average</string>
+    <string name="movie_details">Movie details</string>
+    <string name="network_unreachable">Network is unreachable</string>
+    <string name="problem_getting_movies_list">There was a problem getting the movies list</string>
+</resources>
