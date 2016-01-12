@@ -3,6 +3,9 @@ package com.paulnsoft.popularmovies1;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -26,12 +29,17 @@ import com.google.gson.Gson;
 import com.paulnsoft.popularmovies1.utils.NetworkState;
 import com.paulnsoft.popularmovies1.utils.QueryResult;
 import com.paulnsoft.popularmovies1.utils.Result;
+import com.paulnsoft.popularmovies1.utils.db.Movie;
+import com.paulnsoft.popularmovies1.utils.db.MoviesDB;
+import com.paulnsoft.popularmovies1.utils.db.Utils;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
+import com.squareup.picasso.Target;
 
 import org.apache.commons.io.IOUtils;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -39,6 +47,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Vector;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -47,16 +56,19 @@ import butterknife.ButterKnife;
 public class MoviesGridFragment extends Fragment{
     private static String TAG = "PopMoviesGridFragment";
     private static final String CLASSIFICATION_KEY = "CLASSIFICATION_KEY";
+    private static final String STORED_MOVIES_KEY = "STORED_MOVIES_KEY";
     private static final int READ_EXTERNAL_STORAGE_RUNTIME_PERMISSION = 201;
     GridView mMovies;
     private static final String imagesPrefix = "http://image.tmdb.org/t/p/w185/";
     private static final String requestURL = "http://api.themoviedb.org/3/discover/movie?sort_by=";
     MoviesListAdapter mMoviesListAdapter;
     private boolean displayingMoviesByRatings;
+    private boolean displayingStoredMovies;
     private long lastLoadedPage;
     private long totalNumberOfPages;
     private long totalNumberOfMovies;
     private  String key;
+    private MoviesDB movieDB;
 
     private String generateURLForDecreasingPopularity(long page) {
         return requestURL+"popularity.desc&api_key="+key+"&page="+(int)page;
@@ -64,6 +76,26 @@ public class MoviesGridFragment extends Fragment{
 
     private String generateURLForDecreasingRating(long page) {
         return requestURL+"vote_average.desc&api_key="+key+"&page="+(int)page;
+    }
+
+
+    public class DBTask extends AsyncTask<String, Integer, Vector<Movie>> {
+
+        @Override
+        protected Vector<Movie> doInBackground(String... params) {
+            movieDB.open();
+            Vector<Movie> movies = Utils.getAllMoviesFromCursor(movieDB.getallFavoriteMovies());
+            movieDB.close();
+            return movies;
+        }
+
+        @Override
+        protected void onPostExecute( Vector<Movie> mvs) {
+            for(Movie mv: mvs) {
+                mMoviesListAdapter.addStoredMovie(mv);
+                mMoviesListAdapter.notifyDataSetChanged();
+            }
+        }
     }
 
 
@@ -124,9 +156,10 @@ public class MoviesGridFragment extends Fragment{
         super.onCreate(savedInstanceState);
         if(savedInstanceState != null && savedInstanceState.containsKey(CLASSIFICATION_KEY)) {
             displayingMoviesByRatings = savedInstanceState.getBoolean(CLASSIFICATION_KEY);
-        } else {
-            displayingMoviesByRatings = false;
+        } else if (savedInstanceState != null && savedInstanceState.containsKey(STORED_MOVIES_KEY)){
+            displayingStoredMovies = savedInstanceState.getBoolean(STORED_MOVIES_KEY);
         }
+        movieDB = new MoviesDB(getContext());
     }
 
     @Override
@@ -141,10 +174,37 @@ public class MoviesGridFragment extends Fragment{
         mMovies.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                Result res = mMoviesListAdapter.getMovie(position);
-                if (res != null) {
+                if (!displayingStoredMovies) {
+                    final Result res = mMoviesListAdapter.getMovie(position);
+                    if (res != null) {
+                        Picasso.with(getActivity().getApplicationContext()).load(imagesPrefix + res.poster_path).
+                                into(new Target() {
+                                    @Override
+                                    public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
+                                        Intent intent = new Intent(getActivity(), MovieDetailActivity.class);
+                                        intent.putExtra(MovieDetailActivity.MOVIE_EXTRA, res);
+                                        intent.putExtra(MovieDetailActivity.MOVIE_SMALL_IMAGE_EXTRA,
+                                                extractImageByteStream(bitmap));
+                                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                        startActivity(intent);
+                                    }
+
+                                    @Override
+                                    public void onBitmapFailed(Drawable errorDrawable) {
+
+                                    }
+
+                                    @Override
+                                    public void onPrepareLoad(Drawable placeHolderDrawable) {
+
+                                    }
+                                });
+                    }
+                } else {
+                    final Movie res = (Movie)mMoviesListAdapter.getItem(position);
+                    res.setBigImage(null);
                     Intent intent = new Intent(getActivity(), MovieDetailActivity.class);
-                    intent.putExtra(MovieDetailActivity.MOVIE_EXTRA, res);
+                    intent.putExtra(MovieDetailActivity.MOVIE_EXTRA_DB, res);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     startActivity(intent);
                 }
@@ -155,9 +215,23 @@ public class MoviesGridFragment extends Fragment{
             requestPermissions(new String[] {Manifest.permission.READ_EXTERNAL_STORAGE},
                     READ_EXTERNAL_STORAGE_RUNTIME_PERMISSION);
         } else {
-            readKeyAndRequestMovies();
+            if(!displayingStoredMovies) {
+                readKeyAndRequestMovies();
+            } else {
+                getStoredMovies();
+            }
         }
         return rootView;
+    }
+
+    public static byte[] extractImageByteStream(Bitmap bitmap) {
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        return stream.toByteArray();
+    }
+
+    public static Bitmap getBitmapFromStream(byte[] array) {
+       return BitmapFactory.decodeByteArray(array, 0, array.length);
     }
 
     private void requestMovies(boolean organizeByRatings) {
@@ -170,6 +244,12 @@ public class MoviesGridFragment extends Fragment{
         } else {
             displayToast(R.string.network_unreachable);
         }
+    }
+
+    private void getStoredMovies() {
+        displayingStoredMovies = true;
+        mMoviesListAdapter.setDisplayMode(true);
+        new DBTask().execute("");
     }
 
     private void readKeyAndRequestMovies() {
@@ -224,6 +304,7 @@ public class MoviesGridFragment extends Fragment{
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean(CLASSIFICATION_KEY, displayingMoviesByRatings);
+        outState.putBoolean(STORED_MOVIES_KEY, displayingStoredMovies);
     }
 
 
@@ -236,8 +317,10 @@ public class MoviesGridFragment extends Fragment{
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.sort_rating) {
-            if(!displayingMoviesByRatings) {
+            if(!displayingMoviesByRatings || displayingStoredMovies) {
                 clearList();
+                mMoviesListAdapter.setDisplayMode(false);
+                displayingStoredMovies = false;
                 if(NetworkState.isConnected(getActivity().getApplicationContext())) {
                     new MoviesTask().execute(generateURLForDecreasingRating(1));
                 }
@@ -247,8 +330,10 @@ public class MoviesGridFragment extends Fragment{
                 displayingMoviesByRatings = true;
             }
         } else if(id == R.id.sort_pop) {
-            if(displayingMoviesByRatings) {
+            if(displayingMoviesByRatings || displayingStoredMovies) {
                 clearList();
+                mMoviesListAdapter.setDisplayMode(false);
+                displayingStoredMovies = false;
                 if(NetworkState.isConnected(getActivity().getApplicationContext())) {
                     new MoviesTask().execute(generateURLForDecreasingPopularity(1));
                 } else {
@@ -257,6 +342,11 @@ public class MoviesGridFragment extends Fragment{
                 displayingMoviesByRatings = false;
             }
 
+        } else if(id == R.id.show_fav) {
+            if(!displayingStoredMovies) {
+                clearList();
+                getStoredMovies();
+            }
         }
 
         return super.onOptionsItemSelected(item);
@@ -265,7 +355,9 @@ public class MoviesGridFragment extends Fragment{
 
     private class MoviesListAdapter extends BaseAdapter {
         private ArrayList<Result> mMovies;
+        private ArrayList<Movie> mstoredMovies;
         private LayoutInflater mInflator;
+        private boolean displayingFavorites;
 
         public Result getMovie(int position) {
             return mMovies.get(position);
@@ -274,17 +366,25 @@ public class MoviesGridFragment extends Fragment{
         public MoviesListAdapter(LayoutInflater inflator) {
             super();
             mMovies = new ArrayList<>();
+            mstoredMovies = new ArrayList<>();
             mInflator = inflator;
         }
 
-
+        public void setDisplayMode(boolean displayingFavorites) {
+            this.displayingFavorites = displayingFavorites;
+        }
         public void clear() {
             mMovies.clear();
+            mstoredMovies.clear();
         }
 
         @Override
         public int getCount() {
-            return mMovies.size();
+            if(!displayingFavorites) {
+                return mMovies.size();
+            } else {
+                return mstoredMovies.size();
+            }
         }
 
         public void addResult(Result result){
@@ -294,9 +394,20 @@ public class MoviesGridFragment extends Fragment{
             }
         }
 
+        public void addStoredMovie(Movie mv){
+            if(!mstoredMovies.contains(mv))
+            {
+                mstoredMovies.add(mv);
+            }
+        }
+
         @Override
         public Object getItem(int position) {
-            return mMovies.get(position);
+            if(!displayingFavorites) {
+                return mMovies.get(position);
+            } else {
+                return mstoredMovies.get(position);
+            }
         }
 
         @Override
@@ -315,38 +426,43 @@ public class MoviesGridFragment extends Fragment{
             } else {
                 viewHolder = (ViewHolder) convertView.getTag();
             }
-            Result movie = mMovies.get(position);
-            viewHolder.movieTitle.setText(movie.original_title);
+            if(!displayingFavorites) {
+                Result movie = mMovies.get(position);
+                viewHolder.movieTitle.setText(movie.original_title);
 
-            Picasso.with(getActivity().getApplicationContext()).load(imagesPrefix + movie.poster_path).
-                    into(viewHolder.movieThumbNail, new Callback() {
-                        @Override
-                        public void onSuccess() {
+                Picasso.with(getActivity().getApplicationContext()).load(imagesPrefix + movie.poster_path).
+                        into(viewHolder.movieThumbNail, new Callback() {
+                            @Override
+                            public void onSuccess() {
 
+                            }
+
+                            @Override
+                            public void onError() {
+                                Log.i(TAG, "Error loading image!");
+                                viewHolder.movieThumbNail.setImageResource(R.mipmap.ic_launcher);
+
+                            }
+                        });
+                if (((mMovies.size() - position) < 4) && (lastLoadedPage < totalNumberOfPages)) {
+                    if (displayingMoviesByRatings) {
+                        if (NetworkState.isConnected(getActivity().getApplicationContext())) {
+                            new MoviesTask().execute(generateURLForDecreasingRating(lastLoadedPage + 1));
+                        } else {
+                            displayToast(R.string.network_unreachable);
                         }
-
-                        @Override
-                        public void onError() {
-                            Log.i(TAG, "Error loading image!");
-                            viewHolder.movieThumbNail.setImageResource(R.mipmap.ic_launcher);
-
-                        }
-                    });
-            if(((mMovies.size()-position) < 4) && (lastLoadedPage < totalNumberOfPages)) {
-                if(displayingMoviesByRatings) {
-                    if(NetworkState.isConnected(getActivity().getApplicationContext())) {
-                        new MoviesTask().execute(generateURLForDecreasingRating(lastLoadedPage + 1));
                     } else {
-                        displayToast(R.string.network_unreachable);
-                    }
-                } else {
-                    if(NetworkState.isConnected(getActivity().getApplicationContext())) {
-                        new MoviesTask().execute(generateURLForDecreasingPopularity(lastLoadedPage + 1));
-                    }
-                    else {
-                        displayToast(R.string.network_unreachable);
+                        if (NetworkState.isConnected(getActivity().getApplicationContext())) {
+                            new MoviesTask().execute(generateURLForDecreasingPopularity(lastLoadedPage + 1));
+                        } else {
+                            displayToast(R.string.network_unreachable);
+                        }
                     }
                 }
+            } else {
+                Movie movie = mstoredMovies.get(position);
+                viewHolder.movieTitle.setText(movie.getTitle());
+                viewHolder.movieThumbNail.setImageBitmap(getBitmapFromStream(movie.getSmallImage()));
             }
             return convertView;
         }

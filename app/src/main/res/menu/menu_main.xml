@@ -5,4 +5,6 @@
         android:orderInCategory="100" app:showAsAction="never" />
     <item android:id="@+id/sort_pop" android:title="@string/sort_by_pop"
         android:orderInCategory="100" app:showAsAction="never" />
+    <item android:id="@+id/show_fav" android:title="@string/display_favorites"
+        android:orderInCategory="100" app:showAsAction="never" />
 </menu>
