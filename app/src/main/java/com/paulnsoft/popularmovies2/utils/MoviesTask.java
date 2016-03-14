@@ -3,36 +3,39 @@ package com.paulnsoft.popularmovies2.utils;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.google.gson.Gson;
 import com.paulnsoft.popularmovies2.R;
 import com.paulnsoft.popularmovies2.MoviesGridFragment;
+import com.paulnsoft.popularmovies2.utils.httprequests.MoviesAPI;
+import retrofit.RestAdapter;
 
-import org.apache.commons.io.IOUtils;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
-
-public class MoviesTask extends AsyncTask<String, Integer, String> {
+public class MoviesTask extends AsyncTask<Void, Integer, QueryResult> {
     private MoviesGridFragment moviesGridFragment;
+    private String mSortingMethod;
+    private long mPage;
+    private String mKey;
     private static final String TAG = "MoviesTask";
-    @Override
-    protected String doInBackground(String... params) {
-        String resultString = null;
-        try {
-            HttpURLConnection conn = (HttpURLConnection)new URL(params[0]).openConnection();
-            resultString = IOUtils.toString(conn.getInputStream());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return resultString;
+    public static final String requestURL = "http://api.themoviedb.org";
+
+    public MoviesTask(MoviesGridFragment fragment, String sortMethod, String key, Long page) {
+        moviesGridFragment = fragment;
+        mSortingMethod = sortMethod;
+        mKey = key;
+        mPage = page;
     }
 
     @Override
-    protected void onPostExecute(String s) {
-        super.onPostExecute(s);
-        Gson gson = new Gson();
-        QueryResult queryResult = gson.fromJson(s, QueryResult.class);
+    protected QueryResult doInBackground(Void... params) {
+        RestAdapter adapter = new RestAdapter.Builder()
+                .setEndpoint(requestURL)
+                .build();
+        MoviesAPI commAPI = adapter.create(MoviesAPI.class);
+        QueryResult theResult = commAPI.getMovies(mSortingMethod, mKey, mPage);
+        return theResult;
+    }
+
+    @Override
+    protected void onPostExecute(QueryResult queryResult) {
+        super.onPostExecute(queryResult);
         if(queryResult != null) {
             moviesGridFragment.lastLoadedPage = queryResult.page;
             moviesGridFragment.totalNumberOfMovies = queryResult.total_results;

@@ -26,21 +26,15 @@ import com.paulnsoft.popularmovies2.utils.NetworkState;
 import com.paulnsoft.popularmovies2.utils.db.Movie;
 import com.paulnsoft.popularmovies2.utils.db.MoviesDB;
 import com.paulnsoft.popularmovies2.utils.db.Utils;
-import com.paulnsoft.popularmovies2.utils.reviews.Reviews;
 import com.paulnsoft.popularmovies2.utils.trailers.Result;
-import com.paulnsoft.popularmovies2.utils.trailers.Trailers;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
-
-import org.apache.commons.io.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -369,73 +363,15 @@ public class MovieDetailActivity  extends AppCompatActivity {
     }
 
 
-
-    public class MovieTrailersTask extends AsyncTask<String, Integer, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String resultString = null;
-            try {
-                HttpURLConnection conn = (HttpURLConnection)new URL(params[0]).openConnection();
-                resultString = IOUtils.toString(conn.getInputStream());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return resultString;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            Gson gson = new Gson();
-             Trailers trailers = gson.fromJson(s, Trailers.class);
-            if(trailers != null) {
-                Log.i(TAG, "Trailer list is: " + trailers.getResults() + " long");
-                for (Result res : trailers.getResults()) {
-                    addTrailer(res);
-                }
-            } else {
-                displayToast(R.string.problem_getting_trailers_list);
-            }
-        }
-    }
-
-    private void addTrailer(Result res) {
+    public void addTrailer(Result res) {
         if(res.getSite().toLowerCase().equals("youtube")) {
             trailersAdapter.addTrailer(youtubePrefix+res.getKey());
             trailersAdapter.notifyDataSetChanged();
         }
     }
 
-    public class MovieReviewsTask extends AsyncTask<String, Integer, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String resultString = null;
-            try {
-                HttpURLConnection conn = (HttpURLConnection)new URL(params[0]).openConnection();
-                resultString = IOUtils.toString(conn.getInputStream());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return resultString;
-        }
 
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            Gson gson = new Gson();
-            Reviews reviews = gson.fromJson(s, Reviews.class);
-            if(reviews != null) {
-                Log.i(TAG, "Reviews list is: " + reviews.getResults() + " long");
-                for (com.paulnsoft.popularmovies2.utils.reviews.Result res : reviews.getResults()) {
-                    addReview(res);
-                }
-            } else {
-                displayToast(R.string.problem_getting_reviews_list);
-            }
-        }
-    }
-
-    private void addReview(com.paulnsoft.popularmovies2.utils.reviews.Result res) {
+    public void addReview(com.paulnsoft.popularmovies2.utils.reviews.Result res) {
         reviewsAdapter.addReview(res.getUrl(), res.getAuthor());
         reviewsAdapter.notifyDataSetChanged();
     }

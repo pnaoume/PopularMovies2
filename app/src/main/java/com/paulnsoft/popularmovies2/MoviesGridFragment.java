@@ -32,10 +32,6 @@ import com.squareup.picasso.Target;
 
 import java.io.ByteArrayOutputStream;
 
-import static com.paulnsoft.popularmovies2.utils.MoviesListAdapter.generateURLForDecreasingPopularity;
-import static com.paulnsoft.popularmovies2.utils.MoviesListAdapter.generateURLForDecreasingRating;
-
-
 public class MoviesGridFragment extends Fragment{
     private static String TAG = "PopMoviesGridFragment";
     private static final String CLASSIFICATION_KEY = "CLASSIFICATION_KEY";
@@ -157,9 +153,11 @@ public class MoviesGridFragment extends Fragment{
     private void requestMovies(boolean organizeByRatings) {
         if (NetworkState.isConnected(getActivity().getApplicationContext())) {
             if(organizeByRatings) {
-                new MoviesTask().execute(generateURLForDecreasingRating(1, key));
+                new MoviesTask(this, MoviesListAdapter.voteAverage, key, 1l).
+                        execute();
             } else {
-                new MoviesTask().execute(generateURLForDecreasingPopularity(1, key));
+                new MoviesTask(this, MoviesListAdapter.popularity, key, 1l).
+                        execute();
             }
         } else {
             displayToast(R.string.network_unreachable);
@@ -232,7 +230,8 @@ public class MoviesGridFragment extends Fragment{
                 mMoviesListAdapter.setDisplayMode(false);
                 displayingStoredMovies = false;
                 if(NetworkState.isConnected(getActivity().getApplicationContext())) {
-                    new MoviesTask().execute(generateURLForDecreasingRating(1, key));
+                    new MoviesTask(this, MoviesListAdapter.voteAverage, key, 1l).
+                            execute();
                 }
                 else {
                     displayToast(R.string.network_unreachable);
@@ -245,7 +244,8 @@ public class MoviesGridFragment extends Fragment{
                 mMoviesListAdapter.setDisplayMode(false);
                 displayingStoredMovies = false;
                 if(NetworkState.isConnected(getActivity().getApplicationContext())) {
-                    new MoviesTask().execute(generateURLForDecreasingPopularity(1, key));
+                    new MoviesTask(this, MoviesListAdapter.popularity, key, 1l).
+                            execute();
                 } else {
                     displayToast(R.string.network_unreachable);
                 }
