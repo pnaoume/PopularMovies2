@@ -1,4 +1,4 @@
-package com.paulnsoft.popularmovies1.utils.trailers;
+package com.paulnsoft.popularmovies2.utils.trailers;
 
 
 public class Result {

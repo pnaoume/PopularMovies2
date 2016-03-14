@@ -1,4 +1,4 @@
-package com.paulnsoft.popularmovies1.utils.reviews;
+package com.paulnsoft.popularmovies2.utils.reviews;
 
 import java.util.ArrayList;
 import java.util.List;

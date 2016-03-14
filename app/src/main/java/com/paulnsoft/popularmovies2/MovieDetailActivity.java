@@ -1,8 +1,6 @@
-package com.paulnsoft.popularmovies1;
+package com.paulnsoft.popularmovies2;
 
-import android.content.Context;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.drawable.BitmapDrawable;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -10,7 +8,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -24,13 +21,14 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.Gson;
-import com.paulnsoft.popularmovies1.utils.NetworkState;
-import com.paulnsoft.popularmovies1.utils.Result;
-import com.paulnsoft.popularmovies1.utils.db.Movie;
-import com.paulnsoft.popularmovies1.utils.db.MoviesDB;
-import com.paulnsoft.popularmovies1.utils.db.Utils;
-import com.paulnsoft.popularmovies1.utils.reviews.Reviews;
-import com.paulnsoft.popularmovies1.utils.trailers.Trailers;
+import com.paulnsoft.popularmovies2.R;
+import com.paulnsoft.popularmovies2.utils.NetworkState;
+import com.paulnsoft.popularmovies2.utils.db.Movie;
+import com.paulnsoft.popularmovies2.utils.db.MoviesDB;
+import com.paulnsoft.popularmovies2.utils.db.Utils;
+import com.paulnsoft.popularmovies2.utils.reviews.Reviews;
+import com.paulnsoft.popularmovies2.utils.trailers.Result;
+import com.paulnsoft.popularmovies2.utils.trailers.Trailers;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
@@ -45,11 +43,9 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Vector;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
-import butterknife.OnClick;
 
 public class MovieDetailActivity  extends AppCompatActivity {
     private static  final String TAG = "MovieDetailActivity";
@@ -88,7 +84,7 @@ public class MovieDetailActivity  extends AppCompatActivity {
     private SimpleTrailerAdapter trailersAdapter;
     private SimpleReviewAdapter reviewsAdapter;
     private MoviesDB moviesDB;
-    private Result currentMovie;
+    private com.paulnsoft.popularmovies2.utils.Result currentMovie;
     private Movie currentMovieDb;
     private byte[] smallImage;
     private long currentMovieId;
@@ -130,7 +126,7 @@ public class MovieDetailActivity  extends AppCompatActivity {
         });
         Intent intent = getIntent();
         if(intent != null) {
-            Result  result = (Result)intent.getSerializableExtra(MOVIE_EXTRA);
+            com.paulnsoft.popularmovies2.utils.Result result = (com.paulnsoft.popularmovies2.utils.Result)intent.getSerializableExtra(MOVIE_EXTRA);
             if(result != null ) {
                 smallImage = intent.getByteArrayExtra(MOVIE_SMALL_IMAGE_EXTRA);
                 currentMovie = result;
@@ -394,7 +390,7 @@ public class MovieDetailActivity  extends AppCompatActivity {
              Trailers trailers = gson.fromJson(s, Trailers.class);
             if(trailers != null) {
                 Log.i(TAG, "Trailer list is: " + trailers.getResults() + " long");
-                for (com.paulnsoft.popularmovies1.utils.trailers.Result res : trailers.getResults()) {
+                for (Result res : trailers.getResults()) {
                     addTrailer(res);
                 }
             } else {
@@ -403,7 +399,7 @@ public class MovieDetailActivity  extends AppCompatActivity {
         }
     }
 
-    private void addTrailer(com.paulnsoft.popularmovies1.utils.trailers.Result res) {
+    private void addTrailer(Result res) {
         if(res.getSite().toLowerCase().equals("youtube")) {
             trailersAdapter.addTrailer(youtubePrefix+res.getKey());
             trailersAdapter.notifyDataSetChanged();
@@ -430,7 +426,7 @@ public class MovieDetailActivity  extends AppCompatActivity {
             Reviews reviews = gson.fromJson(s, Reviews.class);
             if(reviews != null) {
                 Log.i(TAG, "Reviews list is: " + reviews.getResults() + " long");
-                for (com.paulnsoft.popularmovies1.utils.reviews.Result res : reviews.getResults()) {
+                for (com.paulnsoft.popularmovies2.utils.reviews.Result res : reviews.getResults()) {
                     addReview(res);
                 }
             } else {
@@ -439,7 +435,7 @@ public class MovieDetailActivity  extends AppCompatActivity {
         }
     }
 
-    private void addReview(com.paulnsoft.popularmovies1.utils.reviews.Result res) {
+    private void addReview(com.paulnsoft.popularmovies2.utils.reviews.Result res) {
         reviewsAdapter.addReview(res.getUrl(), res.getAuthor());
         reviewsAdapter.notifyDataSetChanged();
     }

@@ -1,4 +1,4 @@
-package com.paulnsoft.popularmovies1.utils;
+package com.paulnsoft.popularmovies2.utils;
 
 import java.io.Serializable;
 import java.util.List;

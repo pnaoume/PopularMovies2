@@ -1,4 +1,4 @@
-package com.paulnsoft.popularmovies1.utils.db;
+package com.paulnsoft.popularmovies2.utils.db;
 
 import java.io.Serializable;
 
