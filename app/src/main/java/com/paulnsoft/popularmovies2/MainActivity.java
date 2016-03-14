@@ -6,13 +6,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
 
-import com.google.gson.Gson;
-import com.paulnsoft.popularmovies2.R;
-import com.squareup.picasso.Callback;
-import com.squareup.picasso.Picasso;
-
-import org.apache.commons.io.IOUtils;
-
 public class MainActivity extends AppCompatActivity {
 private MoviesGridFragment moviesGridFragment;
     private Toolbar toolbar;

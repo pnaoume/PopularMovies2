@@ -20,27 +20,21 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.paulnsoft.popularmovies2.R;
+import com.paulnsoft.popularmovies2.utils.MovieReviewsTask;
+import com.paulnsoft.popularmovies2.utils.MovieTrailersTask;
 import com.paulnsoft.popularmovies2.utils.NetworkState;
 import com.paulnsoft.popularmovies2.utils.db.Movie;
 import com.paulnsoft.popularmovies2.utils.db.MoviesDB;
 import com.paulnsoft.popularmovies2.utils.db.Utils;
-import com.paulnsoft.popularmovies2.utils.reviews.Reviews;
 import com.paulnsoft.popularmovies2.utils.trailers.Result;
-import com.paulnsoft.popularmovies2.utils.trailers.Trailers;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
-
-import org.apache.commons.io.IOUtils;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -126,7 +120,8 @@ public class MovieDetailActivity  extends AppCompatActivity {
         });
         Intent intent = getIntent();
         if(intent != null) {
-            com.paulnsoft.popularmovies2.utils.Result result = (com.paulnsoft.popularmovies2.utils.Result)intent.getSerializableExtra(MOVIE_EXTRA);
+            com.paulnsoft.popularmovies2.utils.Result result = (com.paulnsoft.popularmovies2.utils.Result)intent.
+                    getSerializableExtra(MOVIE_EXTRA);
             if(result != null ) {
                 smallImage = intent.getByteArrayExtra(MOVIE_SMALL_IMAGE_EXTRA);
                 currentMovie = result;
@@ -369,135 +364,36 @@ public class MovieDetailActivity  extends AppCompatActivity {
     }
 
 
-
-    public class MovieTrailersTask extends AsyncTask<String, Integer, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String resultString = null;
-            try {
-                HttpURLConnection conn = (HttpURLConnection)new URL(params[0]).openConnection();
-                resultString = IOUtils.toString(conn.getInputStream());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return resultString;
-        }
-
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            Gson gson = new Gson();
-             Trailers trailers = gson.fromJson(s, Trailers.class);
-            if(trailers != null) {
-                Log.i(TAG, "Trailer list is: " + trailers.getResults() + " long");
-                for (Result res : trailers.getResults()) {
-                    addTrailer(res);
-                }
-            } else {
-                displayToast(R.string.problem_getting_trailers_list);
-            }
-        }
-    }
-
-    private void addTrailer(Result res) {
+    public void addTrailer(Result res) {
         if(res.getSite().toLowerCase().equals("youtube")) {
             trailersAdapter.addTrailer(youtubePrefix+res.getKey());
             trailersAdapter.notifyDataSetChanged();
         }
     }
 
-    public class MovieReviewsTask extends AsyncTask<String, Integer, String> {
-        @Override
-        protected String doInBackground(String... params) {
-            String resultString = null;
-            try {
-                HttpURLConnection conn = (HttpURLConnection)new URL(params[0]).openConnection();
-                resultString = IOUtils.toString(conn.getInputStream());
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return resultString;
-        }
 
-        @Override
-        protected void onPostExecute(String s) {
-            super.onPostExecute(s);
-            Gson gson = new Gson();
-            Reviews reviews = gson.fromJson(s, Reviews.class);
-            if(reviews != null) {
-                Log.i(TAG, "Reviews list is: " + reviews.getResults() + " long");
-                for (com.paulnsoft.popularmovies2.utils.reviews.Result res : reviews.getResults()) {
-                    addReview(res);
-                }
-            } else {
-                displayToast(R.string.problem_getting_reviews_list);
-            }
-        }
-    }
-
-    private void addReview(com.paulnsoft.popularmovies2.utils.reviews.Result res) {
+    public void addReview(com.paulnsoft.popularmovies2.utils.reviews.Result res) {
         reviewsAdapter.addReview(res.getUrl(), res.getAuthor());
         reviewsAdapter.notifyDataSetChanged();
     }
 
     private void requestTrailers(long id) {
         if (NetworkState.isConnected(getApplicationContext())) {
-            new MovieTrailersTask().execute(generateURLForTrailers(id));
+            new MovieTrailersTask(id,getString(R.string.moviesdb_key), this).execute();
         } else {
             displayToast(R.string.network_unreachable);
         }
     }
-
-    private String generateURLForTrailers(long id) {
-        StringBuilder stResult= new StringBuilder();
-        stResult.append(API_PREFIX);
-        stResult.append(id);
-        stResult.append(TRAILERS_SUFFIX);
-        stResult.append(readKey());
-        Log.i(TAG, "Returning url for trailers: " + stResult.toString());
-        return stResult.toString();
-    }
-
 
     private void requestReviews(long id) {
         if (NetworkState.isConnected(getApplicationContext())) {
-            new MovieReviewsTask().execute(generateURLForReviews(id));
+            new MovieReviewsTask(id,getString(R.string.moviesdb_key), this).execute();
         } else {
             displayToast(R.string.network_unreachable);
         }
     }
 
-    private String generateURLForReviews(long id) {
-        StringBuilder stResult= new StringBuilder();
-        stResult.append(API_PREFIX);
-        stResult.append(id);
-        stResult.append(REVIEWS_SUFFIX);
-        stResult.append(readKey());
-        Log.i(TAG, "Returning url for reviews: " + stResult.toString());
-        return stResult.toString();
-    }
-
-    static String readKey() {
-        File externalStorageDirectory = Environment.getExternalStorageDirectory();
-        File file = new File(externalStorageDirectory, "key.txt");
-        Log.i(TAG, "Trying to find key: " + file.toString());
-        String key = null;
-        try {
-            BufferedReader br = new BufferedReader(new FileReader(file));
-            String firstLine = br.readLine();
-            key = firstLine;
-            Log.i(TAG, "Key found");
-        } catch (FileNotFoundException e) {
-            Log.i(TAG, "Key not found" + e);
-            key = null;
-        } catch (IOException e) {
-            Log.i(TAG, "Key not found" + e);
-            key = null;
-        }
-        return key;
-    }
-
-    private void displayToast(final int stringRes) {
+    public void displayToast(final int stringRes) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {

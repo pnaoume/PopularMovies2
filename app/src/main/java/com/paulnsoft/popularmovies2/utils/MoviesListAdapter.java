@@ -26,8 +26,11 @@ public class MoviesListAdapter extends BaseAdapter {
     private boolean displayingFavorites;
     private MoviesGridFragment mFragment;
     private static final String TAG = "MoviesListAdapter";
+    public static final String voteAverage = "vote_average.desc";
+    public static final String popularity = "popularity.desc";
+
     public static final String imagesPrefix = "http://image.tmdb.org/t/p/w185/";
-    public static final String requestURL = "http://api.themoviedb.org/3/discover/movie?sort_by=";
+
     private String mKey;
 
     public Result getMovie(int position) {
@@ -41,14 +44,6 @@ public class MoviesListAdapter extends BaseAdapter {
         mInflator = inflator;
         mFragment = fragment;
         mKey = key;
-    }
-
-    public static String generateURLForDecreasingPopularity(long page, String key) {
-        return requestURL+"popularity.desc&api_key="+key+"&page="+(int)page;
-    }
-
-    public static String generateURLForDecreasingRating(long page, String key) {
-        return requestURL+"vote_average.desc&api_key="+key+"&page="+(int)page;
     }
 
     public void setDisplayMode(boolean displayingFavorites) {
@@ -129,15 +124,15 @@ public class MoviesListAdapter extends BaseAdapter {
                     (mFragment.lastLoadedPage < mFragment.totalNumberOfPages)) {
                 if (mFragment.displayingMoviesByRatings) {
                     if (NetworkState.isConnected(mFragment.getActivity())) {
-                        new MoviesTask().execute(
-                                generateURLForDecreasingRating(mFragment.lastLoadedPage + 1, mKey));
+                        new MoviesTask(mFragment, voteAverage, mKey, mFragment.lastLoadedPage + 1).
+                                execute();
                     } else {
                         mFragment.displayToast(R.string.network_unreachable);
                     }
                 } else {
                     if (NetworkState.isConnected(mFragment.getActivity())) {
-                        new MoviesTask().execute(
-                                generateURLForDecreasingPopularity(mFragment.lastLoadedPage + 1, mKey));
+                        new MoviesTask(mFragment, popularity, mKey, mFragment.lastLoadedPage + 1).
+                                execute();
                     } else {
                         mFragment.displayToast(R.string.network_unreachable);
                     }
