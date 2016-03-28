@@ -6,6 +6,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -46,6 +47,14 @@ public class MoviesGridFragment extends Fragment{
     public long totalNumberOfMovies;
     private String key;
     private MoviesDB movieDB;
+    private boolean mTwoPanes;
+
+    public interface Callback {
+        /**
+         *  For when an item has been selected.
+         */
+        public void onItemSelected(Bundle params);
+    }
 
     public void addResult(final Result result) {
         getActivity().runOnUiThread(new Runnable() {
@@ -98,12 +107,20 @@ public class MoviesGridFragment extends Fragment{
                                 into(new Target() {
                                     @Override
                                     public void onBitmapLoaded(Bitmap bitmap, Picasso.LoadedFrom from) {
-                                        Intent intent = new Intent(getActivity(), MovieDetailActivity.class);
-                                        intent.putExtra(MovieDetailActivity.MOVIE_EXTRA, res);
-                                        intent.putExtra(MovieDetailActivity.MOVIE_SMALL_IMAGE_EXTRA,
-                                                extractImageByteStream(bitmap));
-                                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                        startActivity(intent);
+                                        if (!mTwoPanes) {
+                                            Intent intent = new Intent(getActivity(), MovieDetailActivity.class);
+                                            intent.putExtra(MovieDetailActivity.MOVIE_EXTRA, res);
+                                            intent.putExtra(MovieDetailActivity.MOVIE_SMALL_IMAGE_EXTRA,
+                                                    extractImageByteStream(bitmap));
+                                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                            startActivity(intent);
+                                        } else {
+                                            Bundle params = new Bundle();
+                                            params.putSerializable(MovieDetailActivity.MOVIE_EXTRA, res);
+                                            params.putByteArray(MovieDetailActivity.MOVIE_SMALL_IMAGE_EXTRA,
+                                                    extractImageByteStream(bitmap));
+                                            ((Callback)getActivity()).onItemSelected(params);
+                                        }
                                     }
 
                                     @Override
@@ -119,11 +136,17 @@ public class MoviesGridFragment extends Fragment{
                     }
                 } else {
                     final Movie res = (Movie) mMoviesListAdapter.getItem(position);
-                    res.setBigImage(null);
-                    Intent intent = new Intent(getActivity(), MovieDetailActivity.class);
-                    intent.putExtra(MovieDetailActivity.MOVIE_EXTRA_DB, res);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    startActivity(intent);
+                    if (!mTwoPanes) {
+                        res.setBigImage(null);
+                        Intent intent = new Intent(getActivity(), MovieDetailActivity.class);
+                        intent.putExtra(MovieDetailActivity.MOVIE_EXTRA_DB, res);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        startActivity(intent);
+                    } else {
+                        Bundle params = new Bundle();
+                        params.putSerializable(MovieDetailActivity.MOVIE_EXTRA_DB, res);
+                        ((Callback)getActivity()).onItemSelected(params);
+                    }
                 }
             }
         });
@@ -216,6 +239,9 @@ public class MoviesGridFragment extends Fragment{
     }
 
 
+    public void setDisplayMode(boolean twoPanes) {
+        mTwoPanes = twoPanes;
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will

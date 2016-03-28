@@ -30,11 +30,6 @@ import com.paulnsoft.popularmovies2.utils.trailers.Result;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,8 +41,8 @@ public class MovieDetailActivity  extends AppCompatActivity {
     public static final String MOVIE_EXTRA = "MOVIE_EXTRA";
     public static final String MOVIE_EXTRA_DB = "MOVIE_EXTRA_DB";
     public static final String MOVIE_SMALL_IMAGE_EXTRA = "MOVIE_SMALL_IMAGE_EXTRA";
-    private static final String imagesPrefix = "http://image.tmdb.org/t/p/w780/";
-    private static final String youtubePrefix = "https://www.youtube.com/watch?v=";
+    public static final String imagesPrefix = "http://image.tmdb.org/t/p/w780/";
+    public static final String youtubePrefix = "https://www.youtube.com/watch?v=";
     private static final String API_PREFIX = "http://api.themoviedb.org/3/movie/";
     private static final String REVIEWS_SUFFIX = "/reviews?api_key=";
     private static final String TRAILERS_SUFFIX = "/videos?api_key=";

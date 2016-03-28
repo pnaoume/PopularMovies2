@@ -4,6 +4,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import com.paulnsoft.popularmovies2.MovieDetailActivity;
+import com.paulnsoft.popularmovies2.MovieDetailFragment;
 import com.paulnsoft.popularmovies2.R;
 import com.paulnsoft.popularmovies2.utils.httprequests.MoviesAPI;
 import com.paulnsoft.popularmovies2.utils.trailers.*;
@@ -17,10 +18,17 @@ public class MovieTrailersTask extends AsyncTask<Void, Integer, Trailers> {
     private long mFilmID;
     private MovieDetailActivity mActivity;
     private String mKey;
+    private MovieDetailFragment mFragment;
     public MovieTrailersTask(long id, String key, MovieDetailActivity activity) {
         mFilmID = id;
         mKey = key;
         mActivity = activity;
+    }
+
+    public MovieTrailersTask(long id, String key, MovieDetailFragment movieDetailFragment) {
+        mFilmID = id;
+        mKey = key;
+        mFragment = movieDetailFragment;
     }
     @Override
     protected Trailers doInBackground(Void... params) {
@@ -38,10 +46,20 @@ public class MovieTrailersTask extends AsyncTask<Void, Integer, Trailers> {
         if(trailers != null) {
             Log.i(TAG, "Trailer list is: " + trailers.getResults() + " long");
             for (com.paulnsoft.popularmovies2.utils.trailers.Result res : trailers.getResults()) {
-                mActivity.addTrailer(res);
+                if(mActivity != null) {
+                    mActivity.addTrailer(res);
+                }
+                if(mFragment != null) {
+                    mFragment.addTrailer(res);
+                }
             }
         } else {
-            mActivity.displayToast(R.string.problem_getting_trailers_list);
+            if(mActivity != null) {
+                mActivity.displayToast(R.string.problem_getting_trailers_list);
+            }
+            if(mFragment != null) {
+                mFragment.displayToast(R.string.problem_getting_trailers_list);
+            }
         }
     }
 }
